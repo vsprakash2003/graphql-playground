@@ -24,14 +24,6 @@ const getIssuesOfRepository = (path, cursor) => {
   });
 };
 
-/* star the repository */
-const addStarToRepository = repositoryId => {
-  return axiosGraphQLQuery.post(url, {
-    query: ADD_STAR,
-    variables: {repositoryId}
-  });
-}  
-
 /* construct the graphql query */
 const GET_ISSUE_OF_REPOSITORY = `
   query(
@@ -43,10 +35,8 @@ const GET_ISSUE_OF_REPOSITORY = `
       name
       url
       repository(name: $repository) {
-        id
         name
         url
-        viewerHasStarred
         issues(first:5, after: $cursor, states:[OPEN]) {
           edges {
             node {
@@ -73,16 +63,6 @@ const GET_ISSUE_OF_REPOSITORY = `
     }
   }
   `
-/* construct the mutation to star/unstar a repository */
-const ADD_STAR = `
-  mutation($repositoryId: ID!) {
-    addStar(input:{starrableId: $repositoryId}) {
-      starrable {
-        viewerHasStarred
-      }
-    }
-  }
-`
 
 /* pass this function to update state */
 const resolveIssuesQuery = (queryResult, cursor) => state => {
@@ -93,16 +73,6 @@ const resolveIssuesQuery = (queryResult, cursor) => state => {
       errors: errors
     };
   }
-
-// function resolveIssuesQuery(queryResult, cursor) {
-//   return function(state) {
-//     const {data, errors} = queryResult.data;
-//       if (!cursor) {
-//         return {
-//           organization: data.organization, 
-//           errors: errors
-//         };
-//       } 
 
   const {edges: oldIssues} = state.organization.repository.issues;
   const {edges: newIssues} = data.organization.repository.issues;
@@ -146,17 +116,13 @@ export class App extends Component {
     event.preventDefault();
   }
 
-  /* on clicking star or unstar */
-  onStarRepository = (repositoryId, viewerHasStarred) => {
-    addStarToRepository(repositoryId);
-  }
-
   /*fetch data from github */
   onFetchFromGitHub = (path, cursor) => {
     getIssuesOfRepository(path, cursor).then(queryResult => 
-        this.setState(resolveIssuesQuery(queryResult, cursor))
-      );
-    };
+        this.setState(() => (resolveIssuesQuery(queryResult, cursor))
+        )
+      )
+    }
   
   /* pagination for more data */
   onFetchMoreIssues = () => {
@@ -189,7 +155,6 @@ export class App extends Component {
               organization={organization} 
               errors={errors} 
               onFetchMoreIssues={this.onFetchMoreIssues}
-              onStarRepository={this.onStarRepository}
               />)
           : (<p> No information yet ...</p>)
         }
@@ -201,7 +166,7 @@ export class App extends Component {
 export default App;
 
  /*organization component */
-const Organization = ({organization, errors, onFetchMoreIssues, onStarRepository}) => {
+const Organization = ({organization, errors, onFetchMoreIssues}) => {
   if(errors) {
     return(
       <p>
@@ -219,27 +184,23 @@ const Organization = ({organization, errors, onFetchMoreIssues, onStarRepository
         </p>
         <Repository 
         repository = {organization.repository}
-        onFetchMoreIssues = {onFetchMoreIssues} 
-        onStarRepository = {onStarRepository}
+        onFetchMoreIssues = {this.onFetchMoreIssues} 
         />
       </div>
     )
   }
 
   /*repository component */
-const Repository = ({repository, onFetchMoreIssues, onStarRepository}) => (
+const Repository = ({repository, onFetchMoreIssues}) => (
   <div>
       <p>
         <strong>In Repository ...</strong>
         <a href={repository.url}>{repository.name}</a>
       </p>
-      <button type = 'button'
-        onClick = {() => onStarRepository(repository.id, repository.viewerHasStarred)}>
-        {repository.viewerHasStarred? 'Unstar': 'Star'}
-      </button>
+
       <ul>
         {repository.issues.edges.map(issue => (
-          <li key = {issue.node.id}>
+          <li key = {issue.node.key.id}>
               <a href = {issue.node.url}>{issue.node.title}</a>
               <ul>
                 {issue.node.reactions.edges.map(reaction => (
@@ -252,7 +213,7 @@ const Repository = ({repository, onFetchMoreIssues, onStarRepository}) => (
       <hr />
       { repository.issues.pageInfo.hasNextPage 
                   && 
-        (<button onClick={onFetchMoreIssues}>More</button>)
+        (<button onClick={this.onFetchMoreIssues}>More</button>)
       }
   </div>
 )
