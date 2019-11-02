@@ -16,38 +16,24 @@ const axiosGraphQLQuery = axios.create({
 })
 
 /* use this function to pass variables to graphql query */
-const getIssuesOfRepository = (path, cursor) => {
+const getIssuesOfRepository = path => {
   const[organization, repository] = path.split('/');
   return axiosGraphQLQuery.post(url, {
     query: GET_ISSUE_OF_REPOSITORY,
-    variables: {organization, repository, cursor}
+    variables: {organization, repository}
   });
 };
 
-/* star the repository */
-const addStarToRepository = repositoryId => {
-  return axiosGraphQLQuery.post(url, {
-    query: ADD_STAR,
-    variables: {repositoryId}
-  });
-}  
-
 /* construct the graphql query */
 const GET_ISSUE_OF_REPOSITORY = `
-  query(
-    $organization: String!, 
-    $repository: String!,
-    $cursor: String
-    ) {
+  query($organization: String!, $repository: String!) {
     organization(login: $organization) {
       name
       url
       repository(name: $repository) {
-        id
         name
         url
-        viewerHasStarred
-        issues(first:5, after: $cursor, states:[OPEN]) {
+        issues(last:5, states:[OPEN]) {
           edges {
             node {
               id
@@ -63,64 +49,19 @@ const GET_ISSUE_OF_REPOSITORY = `
               }
             }
           }
-          totalCount
-          pageInfo {
-            endCursor
-            hasNextPage
-          }
         }
       }
     }
   }
   `
-/* construct the mutation to star/unstar a repository */
-const ADD_STAR = `
-  mutation($repositoryId: ID!) {
-    addStar(input:{starrableId: $repositoryId}) {
-      starrable {
-        viewerHasStarred
-      }
-    }
-  }
-`
 
 /* pass this function to update state */
-const resolveIssuesQuery = (queryResult, cursor) => state => {
-  const {data, errors} = queryResult.data;
-  if (!cursor) {
-    return {
-      organization: data.organization, 
-      errors: errors
-    };
+const resolveIssuesQuery = queryResult => () => (
+  {
+    organization: queryResult.organization, 
+    errors: queryResult.errors,
   }
-
-// function resolveIssuesQuery(queryResult, cursor) {
-//   return function(state) {
-//     const {data, errors} = queryResult.data;
-//       if (!cursor) {
-//         return {
-//           organization: data.organization, 
-//           errors: errors
-//         };
-//       } 
-
-  const {edges: oldIssues} = state.organization.repository.issues;
-  const {edges: newIssues} = data.organization.repository.issues;
-  const updatedIssues = [...oldIssues, ...newIssues];
-  return {
-    organization: {
-      ...data.organization,
-      repository: {
-        ...data.organization.repository,
-        issues: {
-          ...data.organization.repository.issues,
-          edges: updatedIssues,
-        },
-      },
-    },
-    errors,
-  };
-};
+)
 
 /* render the application */
 export class App extends Component {
@@ -146,23 +87,13 @@ export class App extends Component {
     event.preventDefault();
   }
 
-  /* on clicking star or unstar */
-  onStarRepository = (repositoryId, viewerHasStarred) => {
-    addStarToRepository(repositoryId);
-  }
-
   /*fetch data from github */
-  onFetchFromGitHub = (path, cursor) => {
-    getIssuesOfRepository(path, cursor).then(queryResult => 
-        this.setState(resolveIssuesQuery(queryResult, cursor))
-      );
-    };
-  
-  /* pagination for more data */
-  onFetchMoreIssues = () => {
-    const {endCursor} = this.state.organization.repository.issues.pageInfo;
-    this.onFetchFromGitHub(this.state.path, endCursor);
-  }  
+  onFetchFromGitHub = path => {
+    getIssuesOfRepository(path).then(queryResult => 
+        this.setState(() => (resolveIssuesQuery(queryResult))
+        )
+      )
+    }
 
   render() {
     const {path, organization, errors} = this.state;
@@ -185,12 +116,7 @@ export class App extends Component {
 
         <hr />
         { organization?
-            (<Organization 
-              organization={organization} 
-              errors={errors} 
-              onFetchMoreIssues={this.onFetchMoreIssues}
-              onStarRepository={this.onStarRepository}
-              />)
+            (<Organization organization={organization} errors={errors} />)
           : (<p> No information yet ...</p>)
         }
       </div>
@@ -201,7 +127,7 @@ export class App extends Component {
 export default App;
 
  /*organization component */
-const Organization = ({organization, errors, onFetchMoreIssues, onStarRepository}) => {
+const Organization = ({organization, errors}) => {
   if(errors) {
     return(
       <p>
@@ -217,29 +143,22 @@ const Organization = ({organization, errors, onFetchMoreIssues, onStarRepository
          <strong> Issues from organization: </strong>
           <a href={organization.url}>{organization.name}</a>
         </p>
-        <Repository 
-        repository = {organization.repository}
-        onFetchMoreIssues = {onFetchMoreIssues} 
-        onStarRepository = {onStarRepository}
-        />
+        <Repository repository = {organization.repository} />
       </div>
     )
   }
 
   /*repository component */
-const Repository = ({repository, onFetchMoreIssues, onStarRepository}) => (
+const Repository = ({repository}) => (
   <div>
       <p>
         <strong>In Repository ...</strong>
         <a href={repository.url}>{repository.name}</a>
       </p>
-      <button type = 'button'
-        onClick = {() => onStarRepository(repository.id, repository.viewerHasStarred)}>
-        {repository.viewerHasStarred? 'Unstar': 'Star'}
-      </button>
+
       <ul>
         {repository.issues.edges.map(issue => (
-          <li key = {issue.node.id}>
+          <li key = {issue.node.key.id}>
               <a href = {issue.node.url}>{issue.node.title}</a>
               <ul>
                 {issue.node.reactions.edges.map(reaction => (
@@ -249,10 +168,5 @@ const Repository = ({repository, onFetchMoreIssues, onStarRepository}) => (
           </li>
         ))}
       </ul>
-      <hr />
-      { repository.issues.pageInfo.hasNextPage 
-                  && 
-        (<button onClick={onFetchMoreIssues}>More</button>)
-      }
   </div>
 )
