@@ -82,10 +82,9 @@ export class App extends Component {
   /*fetch data from github */
   onFetchFromGitHub = path => {
     getIssuesOfRepository(path).then(queryResult => 
-        this.setState(() => (resolveIssuesQuery(queryResult))
+        this.setState(resolveIssuesQuery(queryResult))
         )
-      )
-    }
+      }
 
   render() {
     const {path, organization, errors} = this.state;

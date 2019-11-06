@@ -119,10 +119,9 @@ export class App extends Component {
   /*fetch data from github */
   onFetchFromGitHub = (path, cursor) => {
     getIssuesOfRepository(path, cursor).then(queryResult => 
-        this.setState(() => (resolveIssuesQuery(queryResult, cursor))
-        )
-      )
-    }
+        this.setState(resolveIssuesQuery(queryResult, cursor))
+        );
+      }
   
   /* pagination for more data */
   onFetchMoreIssues = () => {
@@ -184,7 +183,7 @@ const Organization = ({organization, errors, onFetchMoreIssues}) => {
         </p>
         <Repository 
         repository = {organization.repository}
-        onFetchMoreIssues = {this.onFetchMoreIssues} 
+        onFetchMoreIssues = {onFetchMoreIssues} 
         />
       </div>
     )
@@ -213,7 +212,7 @@ const Repository = ({repository, onFetchMoreIssues}) => (
       <hr />
       { repository.issues.pageInfo.hasNextPage 
                   && 
-        (<button onClick={this.onFetchMoreIssues}>More</button>)
+        (<button onClick={onFetchMoreIssues}>More</button>)
       }
   </div>
 )
