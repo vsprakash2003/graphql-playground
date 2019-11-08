@@ -1,12 +1,42 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import './index.css';
-import App from './App';
-import * as serviceWorker from './serviceWorker';
+/* import libaries */
+import ApolloClient, {gql} from 'apollo-boost';
+import 'cross-fetch/polyfill';
 
-ReactDOM.render(<App />, document.getElementById('root'));
+/* define variables */
+const gitHubToken = process.env.REACT_APP_GITHUB_PERSONAL_ACCESS_TOKEN;
+const uri = 'https://api.github.com/graphql';
 
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: https://bit.ly/CRA-PWA
-serviceWorker.unregister();
+/* define the query */
+const GET_REPOSITORIES_OF_ORGANIZATION = gql`
+query($organization: String!) {
+  organization(login: $organization) {
+    name
+    url
+    repositories(first: 5) {
+        edges {
+            node {
+                name
+                url
+            }
+        }
+    }
+  }
+}
+`;
+
+/* initialize apollo client */
+const client = new ApolloClient({
+  uri: uri,
+  request: operation => {
+    operation.setContext({
+      headers: {
+        authorization: `bearer ${gitHubToken}`
+      },
+    });
+  },
+}).query({
+  query: GET_REPOSITORIES_OF_ORGANIZATION,
+  variables: {
+      organization: "the-road-to-learn-react",
+  },
+}).then(console.log)
