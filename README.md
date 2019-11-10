@@ -94,3 +94,10 @@ merge pull request via GitHub online interface. select "squash and merge" in the
 ```git commands
 git rebase origin/master
 perform the pull request steps from develop branch as detailed above to merge to master
+```
+
+### to remove a sensitive file(ex: .env) that was committed to git
+```git filter-branch --force --index-filter \
+'git rm --cached --ignore-unmatch .env' \
+ --prune-empty --tag-name-filter cat -- --all
+ ```
