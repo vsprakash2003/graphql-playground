@@ -24,6 +24,17 @@ query($organization: String!) {
 }
 `;
 
+/* construct the mutation to star/unstar a repository */
+const ADD_STAR = gql`
+  mutation($repositoryId: ID!) {
+    addStar(input: {starrableId: $repositoryId}) {
+      starrable {
+        viewerHasStarred
+      }
+    }
+  }
+`
+
 /* initialize apollo client */
 const client = new ApolloClient({
   uri: uri,
@@ -34,9 +45,18 @@ const client = new ApolloClient({
       },
     });
   },
-}).query({
+})
+
+client.query({
   query: GET_REPOSITORIES_OF_ORGANIZATION,
   variables: {
       organization: "the-road-to-learn-react",
   },
 }).then(console.log)
+
+client.mutate({
+    mutation: ADD_STAR,
+    variables: {
+        repositoryId: "MDEwOlJlcG9zaXRvcnk2MzM1MjkwNw==",
+    },
+  }).then(console.log)
