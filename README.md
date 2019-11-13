@@ -101,3 +101,19 @@ perform the pull request steps from develop branch as detailed above to merge to
 'git rm --cached --ignore-unmatch .env' \
  --prune-empty --tag-name-filter cat -- --all
  ```
+
+### clone the react-apollo-started kit and change remote repository
+```git commands
+git clone git@github.com:the-road-to-graphql/react-graphql-github-apollo-starter-kit.git
+git remote set-url origin https://github.com/vsprakash2003/graphql-playground.git
+git pull origin origin/develop --allow-unrelated-histories
+```
+### merge changes from started kit and commit to graphql-playground repository
+1. if there are conflicts from the previous git pull command, fix the merge conflicts
+2. perform the below commands
+```git commands
+git checkout -b origin/develop
+git add .
+git commit -m "first commit after merging from react-apollo-starter kit"
+git push -u origin origin/develop
+```
