@@ -13,13 +13,17 @@ const GET_CURRENT_USER = gql`
 
 const Profile = () => (
     <Query query = {GET_CURRENT_USER}>
-        {({data}) => {
-            const {viewer} = data;
+        {({data, loading}) => {
+            
+            if (loading || !data) {
+                return <div>Loading .....</div>;
+            }
 
-            if (!viewer) {
+            if (!data) {
                 return null;
             }
             
+            const {viewer} = data;
             return (
                 <div>
                     {viewer.name} {viewer.login}
