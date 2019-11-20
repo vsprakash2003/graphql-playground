@@ -33,7 +33,7 @@ const errorLink = onError(({graphQLErrors, networkError}) => {
   }
 })
 
-/* link http and error into a single apollo link */
+/* compose http and error into a single apollo link. httpLink has to be last */
 const link = ApolloLink.from([errorLink, httpLink]);
 
 /* setup apollo client */
