@@ -1,6 +1,7 @@
 import React from 'react';
 import gql from 'graphql-tag';
 import {Mutation} from 'react-apollo';
+import REPOSITORY_FRAGMENT from '../fragments';
 import Link from '../../Link';
 import Button from '../../Button';
 import '../style.css';
@@ -15,6 +16,32 @@ const STAR_REPOSITORY = gql`
         }
     }
 `;
+
+const updateAddStar = (
+    client, 
+    {data: {addStar: {starrable: {id}}}}
+    ) => {
+        const repository = client.readFragment({
+            id: `Repository:${id}`,
+            fragment: REPOSITORY_FRAGMENT,
+        })
+
+        //update count of stargazers of repository
+        const totalCount = repository.stargazers.totalCount + 1;
+
+        //write repository back to cache
+        client.writeFragment({
+            id: `Repository:${id}`,
+            fragment: REPOSITORY_FRAGMENT,
+            data: {
+                ...repository,
+                stargazers: {
+                    ...repository.stargazers,
+                    totalCount,
+                },
+            },
+        });
+    };
 
 const RepositoryItem = ({
     id,
@@ -39,7 +66,11 @@ const RepositoryItem = ({
             </div>
             <div>
                 {!viewerHasStarred? (
-                    <Mutation mutation={STAR_REPOSITORY} variables={{id}}>
+                    <Mutation 
+                    mutation={STAR_REPOSITORY} 
+                    variables={{id}}
+                    update={updateAddStar}
+                    >
                         {(addStar, {data, loading, error}) => (
                             <Button
                             className={'RepositoryItem-title-action'}
