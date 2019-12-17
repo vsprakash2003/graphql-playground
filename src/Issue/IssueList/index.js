@@ -1,6 +1,7 @@
-import React, {Component} from 'react';
+import React from 'react';
 import { Query } from 'react-apollo';
 import gql from 'graphql-tag';
+import { withState } from 'recompose';
 
 import IssueItem from '../IssueItem';
 import Loading from '../../Loading';
@@ -30,9 +31,13 @@ const TRANSITION_STATE = {
 const isShow = issueState => issueState !== ISSUE_STATES.NONE;
 
 const GET_ISSUES_OF_REPOSITORY = gql`
-  query($repositoryOwner: String!, $repositoryName: String!) {
+  query(
+      $repositoryOwner: String!, 
+      $repositoryName: String!,
+      $issueState: IssueState!
+      ) {
     repository(name: $repositoryName, owner: $repositoryOwner) {
-      issues(first: 5) {
+      issues(first: 5, states: [$issueState]) {
         edges { 
             node {
                 id
@@ -48,67 +53,44 @@ const GET_ISSUES_OF_REPOSITORY = gql`
 } 
 `;
 
-class Issues extends Component {
-    state = {
-      issueState: ISSUE_STATES.NONE,
-    };
-
-    onChangeIssueState = nextIssueState => {
-        this.setState({ issueState: nextIssueState });
-    };
-
-    render() {
-      const { issueState } = this.state;
-      const { repositoryOwner, repositoryName } = this.props;
-  
-      return (
-            <div className="Issues">
-                <ButtonUnobtrusive
-                    onClick={() =>
-                    this.onChangeIssueState(TRANSITION_STATE[issueState])
-                }
+const Issues = ({
+    repositoryOwner,
+    repositoryName,
+    issueState,
+    onChangeIssueState,
+}) => (
+        <div className="Issues">
+            <ButtonUnobtrusive
+                onClick={() => onChangeIssueState(TRANSITION_STATE[issueState])}
             >
-                    {TRANSITION_LABELS[issueState]}
-                </ButtonUnobtrusive>
+                {TRANSITION_LABELS[issueState]}
+            </ButtonUnobtrusive>
 
-                {isShow(issueState) && (
-                <Query
-                    query={GET_ISSUES_OF_REPOSITORY}
-                    variables={{
-                        repositoryOwner,
-                        repositoryName,
-                    }}
-                >
-                {({ data, loading, error }) => {
-                    if (error) {
-                    return <ErrorMessage error={error} />;
-                    }
-
-                    if (loading && !data) {
-                        return <Loading />;
-                    }
-
-                    const { repository } = data;
-                    const filteredRepository = {
-                        issues: {
-                          edges: repository.issues.edges.filter(
-                            issue => issue.node.state === issueState,
-                            ), 
-                        },
-                    };
-        
-                    if (!filteredRepository.issues.edges.length) {
-                        return <div className="IssueList">No issues ...</div>;
-                    }
-                
-                    return <IssueList issues={filteredRepository.issues} />;
+            {isShow(issueState) && (
+            <Query
+                query={GET_ISSUES_OF_REPOSITORY}
+                variables={{
+                    repositoryOwner,
+                    repositoryName,
+                    issueState,
                 }}
-                </Query>
-                )}
-            </div>
-        );
-    }
-}
+            >
+            {({ data, loading, error }) => {
+                if (error) {
+                return <ErrorMessage error={error} />;
+                }
+
+                if (loading && !data) {
+                    return <Loading />;
+                }
+
+                const { repository } = data;
+                return <IssueList issues={repository.issues} />;
+                }}
+            </Query>
+            )}
+        </div>
+    );
 
 const IssueList = ({ issues }) => (
     <div className="IssueList">
@@ -118,4 +100,8 @@ const IssueList = ({ issues }) => (
   </div>
   );
   
-export default Issues;
+export default withState(
+    'issueState',
+    'onChangeIssueState',
+    ISSUE_STATES.NONE,
+)(Issues);
