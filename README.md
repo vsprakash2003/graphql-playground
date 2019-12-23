@@ -68,6 +68,10 @@ This section has moved here: https://facebook.github.io/create-react-app/docs/de
 This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
 
 ## Git commands
+### to setup remote repository
+```git commands
+git remote add origin https://github.com/vsprakash2003/graphql-playground.git
+```
 ### to create develop branch
 ```git commands
 git checkout -b origin/develop
@@ -80,7 +84,6 @@ git push -u origin origin/develop
 git init
 git add .
 git commit -m "second commit"
-git remote add origin https://github.com/vsprakash2003/MyGraphQLApollo-Client.git
 git push -u origin develop 
 ```
 ### for approving pull request and merging to master branch
